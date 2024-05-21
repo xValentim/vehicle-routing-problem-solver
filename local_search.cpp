@@ -226,7 +226,7 @@ std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_se
 }
 
 int main() {
-    std::ifstream file("./data/grafo_11.txt");  // Ajuste o caminho conforme necessário
+    std::ifstream file("./data/grafo_10.txt");  // Ajuste o caminho conforme necessário
     if (!file) {
         std::cerr << "Não foi possível abrir o arquivo." << std::endl;
         return 1;
