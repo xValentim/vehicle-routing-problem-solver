@@ -1,0 +1,10 @@
+Arquivo aberto com sucesso.
+File path: ./data/grafo_8.txt
+Brute Force
+Melhor rota encontrada:
+-1 -> 1 -> -2 -> Fim
+-1 -> 4 -> -2 -> Fim
+-1 -> 5 -> -2 -> Fim
+-1 -> 2 -> 6 -> -2 -> Fim
+-1 -> 3 -> 7 -> -2 -> Fim
+Tempo total de execução: 4 ms

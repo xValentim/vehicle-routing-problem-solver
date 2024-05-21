@@ -1,0 +1,11 @@
+Arquivo aberto com sucesso.
+File path: ./data/grafo_9.txt
+Parallel
+Melhor rota encontrada:
+-1 -> 1 -> -2 -> Fim
+-1 -> 5 -> -2 -> Fim
+-1 -> 6 -> -2 -> Fim
+-1 -> 7 -> -2 -> Fim
+-1 -> 2 -> 3 -> -2 -> Fim
+-1 -> 4 -> 8 -> -2 -> Fim
+Tempo total de execução: 89 ms

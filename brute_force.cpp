@@ -8,6 +8,9 @@
 #include <algorithm>  // Para std::next_permutation
 #include <cmath>      // Para pow
 #include <climits>
+#include <chrono>  // Inclui a biblioteca chrono
+
+using namespace std::chrono;  // Usa o namespace chrono para facilitar
 
 // Define o tipo Edge como uma tupla de três inteiros (origem, destino, custo)
 using Edge = std::tuple<int, int, int>;
@@ -72,11 +75,7 @@ bool check_capacity(const Path& path, const Demand& demanda, int capacidade) {
 
 int calculate_cost(const Path& path, const Edges& arestas) {
     int custo_total = 0;
-    // printa todas as arestas com pesos
-    // for (const auto& [aresta, peso] : arestas) {
-    //     std::cout << aresta.first << " -> " << aresta.second << " : " << peso << std::endl;
-    // }
-
+    
     for (size_t i = 0; i < path.size() - 1; ++i) {
         int origem = path[i];
         if (origem == -1){
@@ -87,9 +86,6 @@ int calculate_cost(const Path& path, const Edges& arestas) {
         if (destino == -2){
             destino = 0;
         }
-        
-        // std::cout << origem << std::endl;
-        // std::cout << destino << std::endl;
         
         custo_total += arestas.at({origem, destino});
     }
@@ -123,11 +119,6 @@ bool check_combination_demand(const std::vector<Path>& combination, const Demand
             demand_nodes.push_back(node);
         }
     }
-
-    // std::cout << "Lista de demanda" << std::endl;
-    // for (const auto& node : demand_nodes) {
-    //     std::cout << node << " ";
-    // }
 
     for (const auto& path : combination) {
         for (int node : path) {
@@ -176,13 +167,27 @@ std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_se
     return best_route;
 }
 
-int main() {
-    std::ifstream file("./data/grafo_10.txt");  // Ajuste o caminho conforme necessário
+int main(int argc, char* argv[]) {
+
+    if (argc < 2) {  // Verifica se o caminho do arquivo foi fornecido
+        std::cerr << "Uso: " << argv[0] << " <caminho_para_o_arquivo>" << std::endl;
+        return 1;
+    }
+
+    const char* file_path = argv[1];  // Pega o caminho do arquivo do primeiro argumento
+    std::ifstream file(file_path);  // Abre o arquivo
+
+
+    //std::ifstream file("./data/grafo_10.txt");  // Ajuste o caminho conforme necessário
     if (!file) {
         std::cerr << "Não foi possível abrir o arquivo." << std::endl;
         return 1;
     }
 
+    std::cout << "Arquivo aberto com sucesso.\n" << "File path: " << file_path << "\n";
+    std::cout << "Brute Force" << "\n";
+    
+    auto start = high_resolution_clock::now();
     int num_nos, num_arestas;
     file >> num_nos;  // Lê o número de nós
 
@@ -217,33 +222,15 @@ int main() {
     Graph graph = to_matrix_adj(edges);
     std::vector<Path> all_paths = find_all_paths(graph);
 
-    // Mostra all_paths
-    // std::cout << "Rota encontrada:\n";
-    // for (const auto& path : all_paths) {
-    //     for (int node : path) {
-    //         std::cout << node << " -> ";
-    //     }
-    //     std::cout << "Fim\n";
-    // }
-
     // Gerar o conjunto das partes de todos os caminhos
     std::vector<std::vector<Path>> power_set_paths = generate_power_set(all_paths);
-
-    // Mostra power set
-    // std::cout << "Conjunto das partes de todos os caminhos:\n";
-    // for (const auto& combination : power_set_paths) {
-    //     for (const auto& path : combination) {
-    //         for (int node : path) {
-    //             std::cout << node << " -> ";
-    //         }
-    //         std::cout << "Fim\n";
-    //     }
-    //     // std::cout << "Custo total: " << total_cost_of_combination(combination, edge_map) << "\n";
-    //     std::cout << "-------------------------" << "\n";
-    // }
     
     // Encontrar a melhor rota que atende à demanda com o menor custo
     std::vector<Path> best_route = find_best_route(power_set_paths, edge_map, demanda);
+
+    // Finaliza o timer e calcula a duração
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
 
     // Exibir a melhor rota encontrada
     std::cout << "Melhor rota encontrada:\n";
@@ -253,6 +240,8 @@ int main() {
         }
         std::cout << "Fim\n";
     }
+
+    std::cout << "Tempo total de execução: " << duration.count() << " ms" << std::endl;
 
     return 0;
 }
