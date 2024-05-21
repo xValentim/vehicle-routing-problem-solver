@@ -36,9 +36,13 @@ Graph to_matrix_adj(const std::vector<Edge>& edges) {
     return graph;
 }
 
-std::vector<Path> find_all_paths(const Graph& graph) {
+
+
+std::vector<Path> find_all_paths(const Graph& graph, const Demand& demanda) {
     std::vector<Path> paths;
     std::queue<Path> queue;
+    Demand demanda_copy = demanda;
+    // std::vector<int> neighbors;
     Path start = {-1}; // Começa com 'source' representado por -1
     queue.push(start);
 
@@ -50,11 +54,56 @@ std::vector<Path> find_all_paths(const Graph& graph) {
         if (node == -2) { // -2 para 'sink'
             paths.push_back(path);
         } else {
-            for (int neighbor : graph.at(node)) {
-                Path new_path(path);
-                new_path.push_back(neighbor);
-                queue.push(new_path);
+
+            std::vector<int> neighbors(graph.at(node).begin(), graph.at(node).end());
+
+            if (std::find(neighbors.begin(), neighbors.end(), -2) != neighbors.end()){
+                // Removendo o 'sink' do vetor
+                neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), -2), neighbors.end());
+
+                // Ordenando os vizinhos baseados na demanda, em ordem decrescente
+                std::sort(neighbors.begin(), neighbors.end(), [&demanda_copy](int a, int b) {
+                    return demanda_copy[a] > demanda_copy[b];
+                });
+
+                // Adicionando 'sink' de volta ao início do vetor
+                neighbors.insert(neighbors.begin(), -2);
+            } else {
+                // Apenas ordena
+                std::sort(neighbors.begin(), neighbors.end(), [&demanda_copy](int a, int b) {
+                    return demanda_copy[a] > demanda_copy[b];
+                });   
             }
+
+            if (node == -1){
+
+                for (int neighbor : neighbors) {
+                    Path new_path(path);
+                    new_path.push_back(neighbor);
+                    queue.push(new_path);
+                }
+
+            } else {
+
+                int len = neighbors.size();
+
+                // Definindo os limites do slice
+                int start = 0;  // Primeiro elemento
+                int end = len;  // Último elemento
+                int max_range = 3;  // Máximo de vizinhos a serem considerados
+
+                int range = std::min(max_range, end);
+
+                // Criando o subvector usando iteradores
+                std::vector<int> sliced(neighbors.begin() + start, neighbors.begin() + range);
+
+                for (int neighbor : sliced) {
+                    Path new_path(path);
+                    new_path.push_back(neighbor);
+                    queue.push(new_path);
+                }
+            }
+            
         }
     }
     return paths;
@@ -177,7 +226,7 @@ std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_se
 }
 
 int main() {
-    std::ifstream file("./data/grafo_10.txt");  // Ajuste o caminho conforme necessário
+    std::ifstream file("./data/grafo_11.txt");  // Ajuste o caminho conforme necessário
     if (!file) {
         std::cerr << "Não foi possível abrir o arquivo." << std::endl;
         return 1;
@@ -215,7 +264,7 @@ int main() {
 
     // Continuar com a lógica anterior para gerar o grafo, encontrar caminhos, etc.
     Graph graph = to_matrix_adj(edges);
-    std::vector<Path> all_paths = find_all_paths(graph);
+    std::vector<Path> all_paths = find_all_paths(graph, demanda);
 
     // Mostra all_paths
     // std::cout << "Rota encontrada:\n";
