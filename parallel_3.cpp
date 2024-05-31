@@ -166,6 +166,7 @@ std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_se
     // std::cout << "Rank: " << rank << std::endl;
     // std::cout << "Size: " << size << std::endl;
     int min_cost = 99999999;
+    // std::vector<Path> best_route;
     int idx_start = rank * num_elements_per_process;
     int idx_end = (rank + 1) * num_elements_per_process;
     if (rank == size - 1) {
@@ -174,7 +175,7 @@ std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_se
 
     std::vector<int> idx_best_route(1);
     idx_best_route[0] = -1;
-    
+    #pragma omp parallel for
     for (int i = idx_start; i < idx_end; i += 1) {
         const auto& combination = power_set[i];
         if (check_combination_demand(combination, demanda)) {
