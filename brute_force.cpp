@@ -111,7 +111,7 @@ std::vector<std::vector<Path>> generate_power_set(const std::vector<Path>& all_p
     return power_set;
 }
 
-bool check_combination_demand(const std::vector<Path>& combination, const Demand& demanda) {
+bool check_combination_demand(const std::vector<Path>& combination, const Demand& demanda, int max_stops) {
     std::vector<int> demand_nodes;
     Demand demand_copy = demanda;
     for (const auto& [node, demand] : demanda) {
@@ -121,6 +121,9 @@ bool check_combination_demand(const std::vector<Path>& combination, const Demand
     }
 
     for (const auto& path : combination) {
+        if (path.size() - 2 > max_stops) {
+            return false;
+        }
         for (int node : path) {
             
             if (node != -1 && node != -2) { // Ignora 'source' e 'sink'
@@ -150,11 +153,11 @@ int total_cost_of_combination(const std::vector<Path>& combination, const Edges&
     return total_cost;
 }
 
-std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_set, const Edges& edges, const Demand& demanda) {
+std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_set, const Edges& edges, const Demand& demanda, int max_stops) {
     int min_cost = 99999999;
     std::vector<Path> best_route;
     for (const auto& combination : power_set) {
-        if (check_combination_demand(combination, demanda)) {
+        if (check_combination_demand(combination, demanda, max_stops)) {
             // std::cout << "Entrei no IF " << std::endl;
             int cost = total_cost_of_combination(combination, edges);
             // std::cout << "Custo: " << cost << std::endl;
@@ -168,6 +171,8 @@ std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_se
 }
 
 int main(int argc, char* argv[]) {
+
+    int max_stops = 10;  // Número máximo de paradas permitidas
 
     if (argc < 2) {  // Verifica se o caminho do arquivo foi fornecido
         std::cerr << "Uso: " << argv[0] << " <caminho_para_o_arquivo>" << std::endl;
@@ -226,7 +231,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::vector<Path>> power_set_paths = generate_power_set(all_paths);
     
     // Encontrar a melhor rota que atende à demanda com o menor custo
-    std::vector<Path> best_route = find_best_route(power_set_paths, edge_map, demanda);
+    std::vector<Path> best_route = find_best_route(power_set_paths, edge_map, demanda, max_stops);
 
     // Finaliza o timer e calcula a duração
     auto stop = high_resolution_clock::now();

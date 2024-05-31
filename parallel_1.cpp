@@ -123,7 +123,7 @@ std::vector<std::vector<Path>> generate_power_set(const std::vector<Path>& all_p
     return power_set;
 }
 
-bool check_combination_demand(const std::vector<Path>& combination, const Demand& demanda) {
+bool check_combination_demand(const std::vector<Path>& combination, const Demand& demanda, int max_stops) {
     std::vector<int> demand_nodes;
     Demand demand_copy = demanda;
     for (const auto& [node, demand] : demanda) {
@@ -133,6 +133,9 @@ bool check_combination_demand(const std::vector<Path>& combination, const Demand
     }
 
     for (const auto& path : combination) {
+        if (path.size() - 2 > max_stops) {
+            return false;
+        }
         for (int node : path) {
             
             if (node != -1 && node != -2) { // Ignora 'source' e 'sink'
@@ -154,7 +157,7 @@ bool check_combination_demand(const std::vector<Path>& combination, const Demand
 }
 
 
-std::vector<Path> find_best_route_parallel(const std::vector<std::vector<Path>>& power_set, const Edges& edges, const Demand& demanda) {
+std::vector<Path> find_best_route_parallel(const std::vector<std::vector<Path>>& power_set, const Edges& edges, const Demand& demanda, int max_stops) {
     int min_cost = INT_MAX;  // Use o valor máximo inicial para min_cost
     std::vector<Path> best_route;
     std::vector<Path> local_best_route;
@@ -167,7 +170,7 @@ std::vector<Path> find_best_route_parallel(const std::vector<std::vector<Path>>&
         #pragma omp for nowait
         for (size_t i = 0; i < power_set.size(); ++i) {
             const auto& combination = power_set[i];
-            if (check_combination_demand(combination, demanda)) {
+            if (check_combination_demand(combination, demanda, max_stops)) {
                 int cost = total_cost_of_combination(combination, edges);
                 if (cost < local_min_cost) {
                     local_min_cost = cost;
@@ -192,6 +195,8 @@ std::vector<Path> find_best_route_parallel(const std::vector<std::vector<Path>>&
 
 int main(int argc, char* argv[]) {
 
+    int max_stops = 10;  // Número máximo de paradas permitidas
+
     if (argc < 2) {  // Verifica se o caminho do arquivo foi fornecido
         std::cerr << "Uso: " << argv[0] << " <caminho_para_o_arquivo>" << std::endl;
         return 1;
@@ -208,7 +213,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << "Arquivo aberto com sucesso.\n" << "File path: " << file_path << "\n";
-    std::cout << "Parallel" << "\n";
+    std::cout << "Parallel 1 (OpenMP)" << "\n";
 
     auto start = high_resolution_clock::now();
     int num_nos, num_arestas;
@@ -251,7 +256,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::vector<Path>> power_set_paths = generate_power_set(all_paths);
 
     // Encontrar a melhor rota que atende à demanda com o menor custo
-    std::vector<Path> best_route = find_best_route_parallel(power_set_paths, edge_map, demanda);
+    std::vector<Path> best_route = find_best_route_parallel(power_set_paths, edge_map, demanda, max_stops);
 
     // Finaliza o timer e calcula a duração
     auto stop = high_resolution_clock::now();
@@ -270,47 +275,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-
-/*
-
-[(), 
-({'path': ['source', 1, 'sink'], 'cost': 64},), 
-({'path': ['source', 2, 'sink'], 'cost': 58},), 
-({'path': ['source', 3, 'sink'], 'cost': 36},), 
-({'path': ['source', 2, 3, 'sink'], 'cost': 59},), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 3, 'sink'], 'cost': 36}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}), 
-({'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59})]
-
-
-[['source', 1, 'sink'], 
-['source', 2, 'sink'], 
-['source', 3, 'sink'], 
-['source', 4, 'sink'], 
-['source', 5, 'sink'], 
-['source', 6, 'sink'], 
-['source', 7, 'sink'],
-['source', 8, 'sink'], 
-['source', 9, 'sink'], 
-['source', 10, 'sink'], 
-['source', 1, 8, 'sink'], 
-['source', 1, 7, 'sink'], 
-['source', 2, 4, 'sink'], 
-['source', 3, 8, 'sink'], 
-['source', 3, 9, 'sink'], 
-['source', 3, 6, 'sink'], 
-['source', 6, 9, 'sink'], 
-['source', 9, 10, 'sink'], 
-['source', 3, 9, 10, 'sink'], 
-['source', 3, 6, 9, 'sink'], 
-['source', 6, 9, 10, 'sink'], 
-['source', 3, 6, 9, 10, 'sink']]
-*/

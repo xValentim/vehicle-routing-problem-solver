@@ -112,7 +112,7 @@ std::vector<std::vector<Path>> generate_power_set(const std::vector<Path>& all_p
     return power_set;
 }
 
-bool check_combination_demand(const std::vector<Path>& combination, const Demand& demanda) {
+bool check_combination_demand(const std::vector<Path>& combination, const Demand& demanda, int max_stops) {
     std::vector<int> demand_nodes;
     Demand demand_copy = demanda;
     for (const auto& [node, demand] : demanda) {
@@ -122,6 +122,9 @@ bool check_combination_demand(const std::vector<Path>& combination, const Demand
     }
 
     for (const auto& path : combination) {
+        if (path.size() - 2 > max_stops) {
+            return false;
+        }
         for (int node : path) {
             
             if (node != -1 && node != -2) { // Ignora 'source' e 'sink'
@@ -151,7 +154,7 @@ int total_cost_of_combination(const std::vector<Path>& combination, const Edges&
     return total_cost;
 }
 
-std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_set, const Edges& edges, const Demand& demanda, int argc, char** argv, int size, int rank) {
+std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_set, const Edges& edges, const Demand& demanda, int argc, char** argv, int size, int rank, int max_stops) {
     
     int total_power_set_size = power_set.size();
     int chunk_size = total_power_set_size / size;
@@ -178,7 +181,7 @@ std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_se
     #pragma omp parallel for
     for (int i = idx_start; i < idx_end; i += 1) {
         const auto& combination = power_set[i];
-        if (check_combination_demand(combination, demanda)) {
+        if (check_combination_demand(combination, demanda, max_stops)) {
             // std::cout << "Entrei no IF " << std::endl;
             int cost = total_cost_of_combination(combination, edges);
             // std::cout << "Custo: " << cost << std::endl;
@@ -219,6 +222,8 @@ std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_se
 
 int main(int argc, char* argv[]) {
 
+    int max_stops = 10;  // Número máximo de paradas permitidas
+
     MPI_Init(&argc, &argv);
 
     int size, rank;
@@ -241,7 +246,7 @@ int main(int argc, char* argv[]) {
     }
     if (rank == 0) {
         std::cout << "Arquivo aberto com sucesso.\n" << "File path: " << file_path << "\n";
-        std::cout << "Brute Force" << "\n";
+        std::cout << "Parallel 3 (OpenMP + MPI)" << "\n";
         std::cout << "Rank: " << rank << std::endl;
         std::cout << "Size: " << size << std::endl;
     }
@@ -283,11 +288,9 @@ int main(int argc, char* argv[]) {
 
     // Gerar o conjunto das partes de todos os caminhos
     std::vector<std::vector<Path>> power_set_paths = generate_power_set(all_paths);
-    
-    
 
     // Encontrar a melhor rota que atende à demanda com o menor custo
-    std::vector<Path> best_route = find_best_route(power_set_paths, edge_map, demanda, argc, argv, size, rank);
+    std::vector<Path> best_route = find_best_route(power_set_paths, edge_map, demanda, argc, argv, size, rank, max_stops);
     MPI_Finalize();
 
     // Finaliza o timer e calcula a duração
@@ -308,47 +311,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-
-/*
-
-[(), 
-({'path': ['source', 1, 'sink'], 'cost': 64},), 
-({'path': ['source', 2, 'sink'], 'cost': 58},), 
-({'path': ['source', 3, 'sink'], 'cost': 36},), 
-({'path': ['source', 2, 3, 'sink'], 'cost': 59},), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 3, 'sink'], 'cost': 36}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}), 
-({'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59})]
-
-
-[['source', 1, 'sink'], 
-['source', 2, 'sink'], 
-['source', 3, 'sink'], 
-['source', 4, 'sink'], 
-['source', 5, 'sink'], 
-['source', 6, 'sink'], 
-['source', 7, 'sink'],
-['source', 8, 'sink'], 
-['source', 9, 'sink'], 
-['source', 10, 'sink'], 
-['source', 1, 8, 'sink'], 
-['source', 1, 7, 'sink'], 
-['source', 2, 4, 'sink'], 
-['source', 3, 8, 'sink'], 
-['source', 3, 9, 'sink'], 
-['source', 3, 6, 'sink'], 
-['source', 6, 9, 'sink'], 
-['source', 9, 10, 'sink'], 
-['source', 3, 9, 10, 'sink'], 
-['source', 3, 6, 9, 'sink'], 
-['source', 6, 9, 10, 'sink'], 
-['source', 3, 6, 9, 10, 'sink']]
-*/

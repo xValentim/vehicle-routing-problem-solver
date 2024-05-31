@@ -8,6 +8,9 @@
 #include <algorithm>  // Para std::next_permutation
 #include <cmath>      // Para pow
 #include <climits>
+#include <chrono>  // Inclui a biblioteca chrono
+
+using namespace std::chrono;  // Usa o namespace chrono para facilitar
 
 // Define o tipo Edge como uma tupla de três inteiros (origem, destino, custo)
 using Edge = std::tuple<int, int, int>;
@@ -35,7 +38,6 @@ Graph to_matrix_adj(const std::vector<Edge>& edges) {
     }
     return graph;
 }
-
 
 
 std::vector<Path> find_all_paths(const Graph& graph, const Demand& demanda) {
@@ -164,7 +166,7 @@ std::vector<std::vector<Path>> generate_power_set(const std::vector<Path>& all_p
     return power_set;
 }
 
-bool check_combination_demand(const std::vector<Path>& combination, const Demand& demanda) {
+bool check_combination_demand(const std::vector<Path>& combination, const Demand& demanda, int max_stops) {
     std::vector<int> demand_nodes;
     Demand demand_copy = demanda;
     for (const auto& [node, demand] : demanda) {
@@ -173,12 +175,10 @@ bool check_combination_demand(const std::vector<Path>& combination, const Demand
         }
     }
 
-    // std::cout << "Lista de demanda" << std::endl;
-    // for (const auto& node : demand_nodes) {
-    //     std::cout << node << " ";
-    // }
-
     for (const auto& path : combination) {
+        if (path.size() - 2 > max_stops) {
+            return false;
+        }
         for (int node : path) {
             
             if (node != -1 && node != -2) { // Ignora 'source' e 'sink'
@@ -208,11 +208,11 @@ int total_cost_of_combination(const std::vector<Path>& combination, const Edges&
     return total_cost;
 }
 
-std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_set, const Edges& edges, const Demand& demanda) {
+std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_set, const Edges& edges, const Demand& demanda, int max_stops) {
     int min_cost = 99999999;
     std::vector<Path> best_route;
     for (const auto& combination : power_set) {
-        if (check_combination_demand(combination, demanda)) {
+        if (check_combination_demand(combination, demanda, max_stops)) {
             // std::cout << "Entrei no IF " << std::endl;
             int cost = total_cost_of_combination(combination, edges);
             // std::cout << "Custo: " << cost << std::endl;
@@ -225,13 +225,26 @@ std::vector<Path> find_best_route(const std::vector<std::vector<Path>>& power_se
     return best_route;
 }
 
-int main() {
-    std::ifstream file("./data/grafo_10.txt");  // Ajuste o caminho conforme necessário
+int main(int argc, char* argv[]) {
+
+    int max_stops = 10; // Número máximo de paradas
+
+    if (argc < 2) {  // Verifica se o caminho do arquivo foi fornecido
+        std::cerr << "Uso: " << argv[0] << " <caminho_para_o_arquivo>" << std::endl;
+        return 1;
+    }
+
+    const char* file_path = argv[1];  // Pega o caminho do arquivo do primeiro argumento
+    std::ifstream file(file_path);  // Abre o arquivo
+
     if (!file) {
         std::cerr << "Não foi possível abrir o arquivo." << std::endl;
         return 1;
     }
+    std::cout << "Arquivo aberto com sucesso.\n" << "File path: " << file_path << "\n";
+    std::cout << "Solução aproximada" << "\n";
 
+    auto start = high_resolution_clock::now();
     int num_nos, num_arestas;
     file >> num_nos;  // Lê o número de nós
 
@@ -266,33 +279,15 @@ int main() {
     Graph graph = to_matrix_adj(edges);
     std::vector<Path> all_paths = find_all_paths(graph, demanda);
 
-    // Mostra all_paths
-    // std::cout << "Rota encontrada:\n";
-    // for (const auto& path : all_paths) {
-    //     for (int node : path) {
-    //         std::cout << node << " -> ";
-    //     }
-    //     std::cout << "Fim\n";
-    // }
-
     // Gerar o conjunto das partes de todos os caminhos
     std::vector<std::vector<Path>> power_set_paths = generate_power_set(all_paths);
-
-    // Mostra power set
-    // std::cout << "Conjunto das partes de todos os caminhos:\n";
-    // for (const auto& combination : power_set_paths) {
-    //     for (const auto& path : combination) {
-    //         for (int node : path) {
-    //             std::cout << node << " -> ";
-    //         }
-    //         std::cout << "Fim\n";
-    //     }
-    //     // std::cout << "Custo total: " << total_cost_of_combination(combination, edge_map) << "\n";
-    //     std::cout << "-------------------------" << "\n";
-    // }
     
     // Encontrar a melhor rota que atende à demanda com o menor custo
-    std::vector<Path> best_route = find_best_route(power_set_paths, edge_map, demanda);
+    std::vector<Path> best_route = find_best_route(power_set_paths, edge_map, demanda, max_stops);
+
+    // Finaliza o timer e calcula a duração
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
 
     // Exibir a melhor rota encontrada
     std::cout << "Melhor rota encontrada:\n";
@@ -303,49 +298,7 @@ int main() {
         std::cout << "Fim\n";
     }
 
+    std::cout << "Tempo total de execução: " << duration.count() << " ms" << std::endl;
+
     return 0;
 }
-
-/*
-
-[(), 
-({'path': ['source', 1, 'sink'], 'cost': 64},), 
-({'path': ['source', 2, 'sink'], 'cost': 58},), 
-({'path': ['source', 3, 'sink'], 'cost': 36},), 
-({'path': ['source', 2, 3, 'sink'], 'cost': 59},), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 3, 'sink'], 'cost': 36}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}), 
-({'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59}), 
-({'path': ['source', 1, 'sink'], 'cost': 64}, {'path': ['source', 2, 'sink'], 'cost': 58}, {'path': ['source', 3, 'sink'], 'cost': 36}, {'path': ['source', 2, 3, 'sink'], 'cost': 59})]
-
-
-[['source', 1, 'sink'], 
-['source', 2, 'sink'], 
-['source', 3, 'sink'], 
-['source', 4, 'sink'], 
-['source', 5, 'sink'], 
-['source', 6, 'sink'], 
-['source', 7, 'sink'],
-['source', 8, 'sink'], 
-['source', 9, 'sink'], 
-['source', 10, 'sink'], 
-['source', 1, 8, 'sink'], 
-['source', 1, 7, 'sink'], 
-['source', 2, 4, 'sink'], 
-['source', 3, 8, 'sink'], 
-['source', 3, 9, 'sink'], 
-['source', 3, 6, 'sink'], 
-['source', 6, 9, 'sink'], 
-['source', 9, 10, 'sink'], 
-['source', 3, 9, 10, 'sink'], 
-['source', 3, 6, 9, 'sink'], 
-['source', 6, 9, 10, 'sink'], 
-['source', 3, 6, 9, 10, 'sink']]
-*/

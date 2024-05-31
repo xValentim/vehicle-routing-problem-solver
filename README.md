@@ -4,6 +4,35 @@
 
 O problema de roteamento de veículos (VRP) é fundamental em logística e gestão da cadeia de suprimentos, onde a eficiência nas rotas de entrega pode resultar em economias significativas de tempo e custos, além de redução do impacto ambiental. Este projeto aborda o VRP, um problema de otimização combinatória que visa minimizar o custo total das rotas de uma frota de veículos ao atender às demandas de diversos clientes. O objetivo é encontrar as rotas mais eficientes, considerando restrições como a capacidade dos veículos e a demanda dos clientes, usando técnicas de computação paralela para lidar com a complexidade do problema.
 
+## Execução do Projeto
+
+Para executar o projeto, é necessário ter o compilador de C++ instalado na máquina. O comando para executar o código compilado é:
+    
+### Brute Force
+```bash
+./brute_foce data/<data_file> 
+```
+
+### Solução Aproximada (Local Search)
+```bash
+./local_search data/<data_file> 
+```
+### Parallel Solution 1 (OpenMP)
+```bash
+./parallel_1 data/<data_file> 
+```
+### Parallel Solution 2 (MPI)
+```bash
+mpirun -np 2 ./parallel_2 data/<data_file> 
+```
+
+### Parallel Solution 3 (OpenMP + MPI)
+```bash
+mpirun -np 2 ./parallel_3 data/<data_file> 
+```
+
+Obs.: O número máximo de paradas está configurado direto no código e o default é 10.
+
 ## Solução de Força Bruta
 
 ### Descrição da Solução
@@ -241,6 +270,3 @@ Por fim, vamos fazer um comparativo do tempo de execução das diferentes aborda
 ![img](imgs/output_time_line.png)
 
 ![img](imgs/output_time_bar.png)
-
-### Análise dos Resultados
-
